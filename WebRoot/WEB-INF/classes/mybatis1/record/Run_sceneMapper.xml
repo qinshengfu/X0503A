@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="Run_sceneMapper">
+
+    <!--表名 -->
+    <sql id="tableName">
+		"FT_RUN_SCENE"
+	</sql>
+
+    <!-- 字段 -->
+    <sql id="Field">
+		"GMT_CREATE",	
+		"GMT_MODIFIED",	
+		"SCENE",	
+		"NEXT_PERIOD",	
+		"NUM1",
+		"NUM2",
+		"NUM3",
+		"NUM4",
+		"NUM5",
+		"NUM6",
+		"NUM7",
+		"RUN_SCENE_ID"
+	</sql>
+
+    <!-- 字段值 -->
+    <sql id="FieldValue">
+			#{GMT_CREATE},	
+			#{GMT_MODIFIED},	
+			#{SCENE},	
+			#{NEXT_PERIOD},	
+			#{NUM1},
+			#{NUM2},
+			#{NUM3},
+			#{NUM4},
+			#{NUM5},
+			#{NUM6},
+			#{NUM7},
+			#{RUN_SCENE_ID}
+	</sql>
+
+    <!-- 新增-->
+    <insert id="save" parameterType="pd">
+        /* 返回 主键ID*/
+        <selectKey keyProperty="RUN_SCENE_ID" order="BEFORE" resultType="java.lang.Integer">
+            select FT_RUN_SCENE_SEQ.NEXTVAL as RUN_SCENE_ID from DUAL
+        </selectKey>
+
+        insert into
+        <include refid="tableName"/>
+        (
+        <include refid="Field"/>
+        ) values (
+        <include refid="FieldValue"/>
+        )
+    </insert>
+
+    <!-- 删除-->
+    <delete id="delete" parameterType="pd">
+        delete from
+        <include refid="tableName"></include>
+        where
+        "RUN_SCENE_ID" = #{RUN_SCENE_ID}
+    </delete>
+
+    <!-- 修改 -->
+    <update id="edit" parameterType="pd">
+        update
+        <include refid="tableName"/>
+        set
+        <foreach item="item" collection="_parameter.keys"
+                 separator="," close="">
+            <if test="item != null and item != '' ">
+                ${item} = #{[${item}]}
+            </if>
+        </foreach>
+        where
+        "RUN_SCENE_ID" = #{RUN_SCENE_ID}
+    </update>
+
+    <!-- 通过ID获取数据 -->
+    <select id="findById" parameterType="pd" resultType="pd">
+        select
+        <include refid="Field"/>
+        from
+        <include refid="tableName"/>
+        where
+        "RUN_SCENE_ID" = #{RUN_SCENE_ID}
+    </select>
+
+    <!-- 获取最新一期数据 -->
+    <select id="getLatest" parameterType="pd" resultType="pd">
+        select
+        *
+        from
+        (
+        SELECT * FROM FT_RUN_SCENE a JOIN FT_COLOR_ZODIAC b ON a.RUN_SCENE_ID = b.SCENE_ID ORDER BY "RUN_SCENE_ID" DESC
+        )
+        where
+        ROWNUM = 1
+    </select>
+
+    <!-- 列表 -->
+    <select id="datalistPage" parameterType="page" resultType="pd">
+        select
+        <include refid="Field"/>
+        from
+        <include refid="tableName"/>
+        where 1=1
+        <if test="pd.keywords!= null and pd.keywords != ''"><!-- 关键词检索 -->
+            and
+            (
+                "SCENE" LIKE CONCAT(CONCAT('%', #{pd.keywords}),'%')
+            )
+        </if>
+        /*时间段搜索*/
+        <if test="pd.lastStart != null and pd.lastStart != '' ">
+            and
+            "NEXT_PERIOD" &gt;= #{pd.lastStart}
+        </if>
+        <if test="pd.lastEnd!= null and pd.lastEnd != '' ">
+            and
+            "NEXT_PERIOD" &lt;= ( SELECT TO_CHAR(( SELECT to_date( #{pd.lastEnd}, 'yyyy-mm-dd' ) + 1 FROM dual ),
+            'yyyy-mm-dd' ) FROM dual )
+        </if>
+        order by "RUN_SCENE_ID" desc
+    </select>
+
+    <!-- 列表(全部) -->
+    <select id="listAll" parameterType="pd" resultType="pd">
+        select
+        *
+        from
+        (
+        SELECT * FROM FT_RUN_SCENE a JOIN FT_COLOR_ZODIAC b ON a.RUN_SCENE_ID = b.SCENE_ID ORDER BY "RUN_SCENE_ID" DESC
+        )
+        order by "RUN_SCENE_ID" desc
+    </select>
+
+    <!-- 列表(逻辑分页 今年的记录) -->
+    <select id="listByYear" parameterType="pd" resultType="pd">
+        select
+        <include refid="Field"/>
+        from
+        <include refid="tableName"/>
+        where to_char( TO_DATE( GMT_CREATE, 'YYYY-MM-DD HH24:MI:SS' ), 'YYYY' ) = to_char( SYSDATE, 'YYYY' )
+        order by "RUN_SCENE_ID" desc
+    </select>
+
+    <!-- 列表(物理分页 ) -->
+    <select id="todayYearlistPage" parameterType="page" resultType="pd">
+        select
+        <include refid="Field"/>
+        from
+        (
+        SELECT * FROM FT_RUN_SCENE a JOIN FT_COLOR_ZODIAC b ON a.RUN_SCENE_ID = b.SCENE_ID ORDER BY "RUN_SCENE_ID" DESC
+        )
+        order by "RUN_SCENE_ID" desc
+    </select>
+
+    <!-- 列表(查询N条数据) -->
+    <select id="listAppointResult" parameterType="pd" resultType="pd">
+        select
+        *
+        from
+        (
+          SELECT * FROM FT_RUN_SCENE a JOIN FT_COLOR_ZODIAC b ON a.RUN_SCENE_ID = b.SCENE_ID ORDER BY "RUN_SCENE_ID" DESC
+        )
+        where ROWNUM &lt;= ${count}
+    </select>
+
+    <!-- 批量删除 -->
+    <delete id="deleteAll" parameterType="String">
+        delete from
+        <include refid="tableName"/>
+        where
+        "RUN_SCENE_ID" in
+        <foreach item="item" index="index" collection="array" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </delete>
+
+    <!-- fh313596790qq(青苔) -->
+</mapper>
